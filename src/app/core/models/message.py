@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 class Status(str, Enum):
     SENT = "SENT"
     PENDING = "PENDING"
-    FAILED = "PENDING"
+    FAILED = "FAILED"
 
 
 class Message(Base, table=True):
