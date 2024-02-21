@@ -3,6 +3,8 @@ from datetime import datetime
 from pydantic import BaseModel
 from pydantic import field_validator
 
+from src.app.core.models import Status
+
 
 class CampaignBaseSchema(BaseModel):
     start_time: datetime
@@ -32,3 +34,13 @@ class CampaignUpdateSchema(CampaignBaseSchema):
 
 class CampaignSchema(CampaignBaseSchema):
     id: int
+
+
+class CampaignStatisticItemSchema(BaseModel):
+    status: Status
+    count: int
+
+
+class CampaignStatisticsSchema(BaseModel):
+    campaign_id: int
+    statistics: list[CampaignStatisticItemSchema]
