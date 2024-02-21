@@ -7,11 +7,13 @@ from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.app.campaigns.schemas import CampaignCreateSchema
+from src.app.campaigns.schemas import CampaignDetailedStatisticsSchema
 from src.app.campaigns.schemas import CampaignStatisticItemSchema
 from src.app.campaigns.schemas import CampaignStatisticsSchema
 from src.app.campaigns.schemas import CampaignUpdateSchema
 from src.app.core.models import Campaign
 from src.app.core.models import Message
+from src.app.messages.schemas import MessageSchema
 
 
 async def create_campaign(
@@ -128,6 +130,39 @@ async def get_campaign_statistics(
             )
 
         return list(statistics_dict.values())
+
+    except SQLAlchemyError:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error"
+        )
+
+
+async def get_detailed_campaign_statistics(
+    session: AsyncSession, campaign_id: int
+) -> CampaignDetailedStatisticsSchema:
+    """Get detailed campaign statistics"""
+    try:
+        statement = select(Message).where(Message.campaign_id == campaign_id)
+        result: Result = await session.execute(statement=statement)
+        messages = result.scalars().all()
+
+        details = [
+            MessageSchema(
+                id=message.id,
+                created_at=message.created_at,
+                status=message.status,
+                campaign_id=campaign_id,
+                client_id=message.client_id,
+            )
+            for message in messages
+        ]
+        if not details:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="No messages"
+            )
+        return CampaignDetailedStatisticsSchema(
+            campaign_id=campaign_id, details=details
+        )
 
     except SQLAlchemyError:
         raise HTTPException(
