@@ -4,6 +4,7 @@ from pydantic import BaseModel
 from pydantic import field_validator
 
 from src.app.core.models import Status
+from src.app.messages.schemas import MessageSchema
 
 
 class CampaignBaseSchema(BaseModel):
@@ -44,3 +45,8 @@ class CampaignStatisticItemSchema(BaseModel):
 class CampaignStatisticsSchema(BaseModel):
     campaign_id: int
     statistics: list[CampaignStatisticItemSchema]
+
+
+class CampaignDetailedStatisticsSchema(BaseModel):
+    campaign_id: int
+    details: list[MessageSchema]
