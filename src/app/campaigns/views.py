@@ -6,6 +6,7 @@ from sqlmodel.ext.asyncio.session import AsyncSession
 from src.app.campaigns import crud
 from src.app.campaigns.schemas import CampaignCreateSchema
 from src.app.campaigns.schemas import CampaignSchema
+from src.app.campaigns.schemas import CampaignStatisticsSchema
 from src.app.campaigns.schemas import CampaignUpdateSchema
 from src.app.core.models import db_helper
 
@@ -55,3 +56,11 @@ async def delete_campaign(
 ):
     campaign = await crud.get_campaign(campaign_id=campaign_id, session=session)
     await crud.delete_campaign(session=session, campaign=campaign)
+
+
+@router.get("/{campaign_id}/statistics", response_model=list[CampaignStatisticsSchema])
+async def get_campaign_statistics(
+    campaign_id: int,
+    session: AsyncSession = Depends(db_helper.scoped_session_dependency),
+):
+    return await crud.get_campaign_statistics(session=session, campaign_id=campaign_id)
