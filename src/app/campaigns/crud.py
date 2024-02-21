@@ -1,13 +1,17 @@
 from fastapi import HTTPException
 from fastapi import status
+from sqlalchemy import func
 from sqlalchemy.engine import Result
 from sqlalchemy.exc import SQLAlchemyError
 from sqlmodel import select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from src.app.campaigns.schemas import CampaignCreateSchema
+from src.app.campaigns.schemas import CampaignStatisticItemSchema
+from src.app.campaigns.schemas import CampaignStatisticsSchema
 from src.app.campaigns.schemas import CampaignUpdateSchema
 from src.app.core.models import Campaign
+from src.app.core.models import Message
 
 
 async def create_campaign(
@@ -91,6 +95,41 @@ async def delete_campaign(session: AsyncSession, campaign: Campaign) -> None:
         return None
     except SQLAlchemyError:
         await session.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error"
+        )
+
+
+async def get_campaign_statistics(
+    session: AsyncSession, campaign_id: int | None = None
+) -> list[CampaignStatisticsSchema]:
+    """Get campaign statistics"""
+    try:
+        statement = select(
+            Message.campaign_id,
+            Message.status,
+            func.count(Message.status).label("count"),
+        ).group_by(Message.campaign_id, Message.status)
+
+        if campaign_id:
+            statement = statement.where(Message.campaign_id == campaign_id)
+
+        result: Result = await session.execute(statement=statement)
+        statistics = result.fetchall()
+
+        statistics_dict = {}
+        for campaign_id, stat, count in statistics:
+            if campaign_id not in statistics_dict:
+                statistics_dict[campaign_id] = CampaignStatisticsSchema(
+                    campaign_id=campaign_id, statistics=[]
+                )
+            statistics_dict[campaign_id].statistics.append(
+                CampaignStatisticItemSchema(status=stat, count=count)
+            )
+
+        return list(statistics_dict.values())
+
+    except SQLAlchemyError:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error"
         )
